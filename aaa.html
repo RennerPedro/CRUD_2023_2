@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informações do Produto</title>
+    <!-- Certifique-se de incluir o axios no seu projeto -->
+    <!-- Você pode instalá-lo com o comando: npm install axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Informações do Produto</h1>
+
+    <form id="productForm">
+        <label for="productName">Nome do Produto:</label>
+        <input type="text" id="productName" required>
+
+        <label for="productPrice">Preço:</label>
+        <input type="number" id="productPrice" required>
+
+        <label for="productQuantity">Quantidade:</label>
+        <input type="number" id="productQuantity" required>
+
+        <label for="productCategory">Categoria:</label>
+        <select id="productCategory"></select>
+
+        <label for="productBrand">Marca:</label>
+        <select id="productBrand"></select>
+
+        <button type="submit">Adicionar Produto</button>
+    </form>
+
+    <table id="productTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th>Quantidade</th>
+                <th>Marca</th>
+                <th>Categoria</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        let tableBody;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const productForm = document.getElementById('productForm');
+            const tableBody = document.querySelector('#productTable tbody');
+
+            // Obter categorias e marcas do backend
+            const categories = await axios.get('http://localhost:3001/api/categorias').then(response => response.data);
+            const brands = await axios.get('http://localhost:3001/api/marcas').then(response => response.data);
+
+            // Preencher as opções de seleção para Categorias e Marcas
+            const categorySelect = document.getElementById('productCategory');
+            const brandSelect = document.getElementById('productBrand');
+
+            categories.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria.ID;
+                option.text = categoria.Tipo_produto;
+                categorySelect.add(option);
+            });
+
+            brands.forEach(marca => {
+                const option = document.createElement('option');
+                option.value = marca.ID;
+                option.text = marca.Nome;
+                brandSelect.add(option);
+            });
+
+            productForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                const productName = document.getElementById('productName').value;
+                const productPrice = document.getElementById('productPrice').value;
+                const productQuantity = document.getElementById('productQuantity').value;
+                const productCategory = categorySelect.value;
+                const productBrand = brandSelect.value;
+
+                console.log('Enviando requisição...');
+
+                try {
+                    const response = await axios.post('http://localhost:3001/api/produtos', {
+                        Nome: productName,
+                        Preco: productPrice,
+                        Quantidade: productQuantity,
+                        idCategoria: productCategory,
+                        idMarca: productBrand,
+                    });
+
+                    console.log('Resposta recebida:', response);
+
+                    if (response.status === 201) {
+                        console.log('Novo produto inserido com sucesso!');
+                        // Atualizar a tabela ou fazer outras ações necessárias
+                        atualizarTabela();
+
+                    } else {
+                        console.error('Erro na resposta:', response.status, response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Erro ao realizar a solicitação:', error);
+                }
+
+                // Limpar o formulário após o envio
+                productForm.reset();
+            });            
+
+
+            // Atualizar tabela ao carregar a página
+            const initialProducts = await axios.get('http://localhost:3001/api/produtos').then(response => response.data);
+
+            initialProducts.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.ID}</td>
+                    <td>${product.Nome}</td>
+                    <td>${product.Preco}</td>
+                    <td>${product.Quantidade}</td>
+                    <td>${product.NomeMarca}</td>
+                    <td>${product.NomeCategoria}</td>
+                    <td>
+                        <button onclick="excluirProduto(${product.ID})">Excluir</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        });
+        
+                    // Função para excluir um produto pelo ID
+        async function excluirProduto(id) {
+                try {
+                    const response = await axios.delete(`http://localhost:3001/api/produtos/${id}`);
+
+                    if (response.status === 200) {
+                        console.log('Produto excluído com sucesso!');
+                        // Atualizar a tabela ou realizar outras ações necessárias
+                        atualizarTabela();
+                    } else {
+                        console.error('Erro ao excluir produto:', response.status, response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Erro ao realizar a solicitação de exclusão:', error);
+                }
+            }
+
+            
+    </script>
+</body>
+</html>
